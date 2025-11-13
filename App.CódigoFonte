@@ -1,0 +1,384 @@
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Loja de Celulares</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .tab-active {
+            border-bottom: 3px solid #4f46e5;
+            color: #4f46e5;
+            font-weight: 600;
+        }
+        /* Classe para rolagem em áreas de dados */
+        .data-scroll {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        /* Oculta as setas de input number */
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-start justify-center min-h-screen p-4">
+
+    <div class="bg-white shadow-2xl rounded-xl p-6 md:p-10 max-w-4xl w-full">
+        <h1 class="text-3xl font-extrabold text-gray-900 mb-2">
+            StoreFlow: Loja de Celulares
+        </h1>
+        <p class="text-gray-500 mb-6 border-b pb-4">
+            Simulador de vendas, clientes e estoque. Dados armazenados na memória do navegador.
+        </p>
+
+        <!-- Navegação (Tabs) -->
+        <div class="flex border-b mb-6 text-center">
+            <button id="tab-products" onclick="switchView('products')" class="px-4 py-2 text-sm md:text-base text-gray-600 hover:text-indigo-600 transition duration-150 tab-active">
+                Catálogo (<span id="product-count">3</span>)
+            </button>
+            <button id="tab-customers" onclick="switchView('customers')" class="px-4 py-2 text-sm md:text-base text-gray-600 hover:text-indigo-600 transition duration-150">
+                Clientes (<span id="customer-count">0</span>)
+            </button>
+            <button id="tab-sales" onclick="switchView('sales')" class="px-4 py-2 text-sm md:text-base text-gray-600 hover:text-indigo-600 transition duration-150">
+                Registrar Venda
+            </button>
+        </div>
+
+        <!-- Container de Views -->
+        <div id="views-container">
+
+            <!-- 1. Catálogo de Produtos -->
+            <div id="view-products" class="view-section">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">Estoque de Celulares</h2>
+                <div id="product-list" class="space-y-4 data-scroll">
+                    <!-- Conteúdo gerado via JS -->
+                </div>
+            </div>
+
+            <!-- 2. Cadastro de Clientes -->
+            <div id="view-customers" class="view-section hidden">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">Clientes Registrados</h2>
+                
+                <form id="customer-form" class="bg-indigo-50 p-4 rounded-lg shadow-inner mb-6">
+                    <p class="font-medium text-indigo-700 mb-3">Novo Cadastro</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input type="text" id="customer-name" placeholder="Nome Completo" required class="p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                        <input type="email" id="customer-email" placeholder="Email" required class="p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                    <button type="submit" class="mt-4 w-full md:w-auto px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
+                        Cadastrar Cliente
+                    </button>
+                </form>
+
+                <div id="customer-list" class="space-y-3 data-scroll">
+                    <!-- Conteúdo gerado via JS -->
+                    <p class="text-gray-500 text-center py-4">Nenhum cliente cadastrado ainda.</p>
+                </div>
+                
+                <h2 class="text-xl font-semibold text-gray-800 mt-6 mb-4">Histórico de Vendas</h2>
+                <div id="sales-history" class="space-y-3 data-scroll">
+                    <!-- Conteúdo gerado via JS -->
+                    <p class="text-gray-500 text-center py-4">Nenhuma venda registrada ainda.</p>
+                </div>
+            </div>
+
+            <!-- 3. Registro de Vendas -->
+            <div id="view-sales" class="view-section hidden">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">Registrar Nova Venda</h2>
+                
+                <form id="sale-form" class="bg-yellow-50 p-6 rounded-xl shadow-lg">
+                    <div id="sale-form-message" class="text-red-600 mb-4 hidden"></div>
+
+                    <div class="mb-4">
+                        <label for="sale-customer" class="block text-sm font-medium text-gray-700 mb-1">Cliente:</label>
+                        <select id="sale-customer" required class="w-full p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="">-- Selecione um Cliente --</option>
+                            <!-- Opções preenchidas pelo JS -->
+                        </select>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="sale-product" class="block text-sm font-medium text-gray-700 mb-1">Celular a Vender:</label>
+                        <select id="sale-product" required class="w-full p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="">-- Selecione um Aparelho --</option>
+                            <!-- Opções preenchidas pelo JS -->
+                        </select>
+                    </div>
+                    
+                    <button type="submit" class="mt-4 w-full px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-bold">
+                        Concluir Venda
+                    </button>
+                </form>
+            </div>
+            
+        </div>
+    </div>
+
+    <script>
+        // --- Estruturas de Dados (Simulando o Banco de Dados) ---
+        let products = [
+            { id: 1, name: "Samsung Galaxy S23", price: 4500.00, stock: 5, description: "Smartphone de alta performance com câmera avançada." },
+            { id: 2, name: "iPhone 15 Pro", price: 8999.00, stock: 3, description: "O mais novo modelo da Apple com chip A17 Bionic." },
+            { id: 3, name: "Xiaomi Redmi Note 12", price: 1800.00, stock: 10, description: "Excelente custo-benefício e bateria de longa duração." },
+            { id: 4, name: "Motorola Edge 30", price: 2999.00, stock: 7, description: "Design fino e carregamento ultra-rápido." }
+        ];
+
+        let customers = []; 
+        let sales = []; 
+        let nextCustomerId = 1;
+        let nextSaleId = 1;
+
+        // --- Funções de Renderização e Lógica ---
+
+        /**
+         * Renderiza o catálogo de produtos.
+         */
+        function renderProducts() {
+            const listElement = document.getElementById('product-list');
+            const countElement = document.getElementById('product-count');
+            listElement.innerHTML = ''; // Limpa a lista
+            countElement.textContent = products.length;
+
+            if (products.length === 0) {
+                listElement.innerHTML = '<p class="text-gray-500 text-center py-4">Nenhum produto em estoque.</p>';
+                return;
+            }
+
+            products.forEach(product => {
+                const stockColor = product.stock > 5 ? 'bg-green-100 text-green-800' : 
+                                   product.stock > 0 ? 'bg-yellow-100 text-yellow-800' : 
+                                   'bg-red-100 text-red-800';
+                
+                const itemHtml = `
+                    <div class="p-4 border rounded-lg shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center">
+                        <div class="flex-1 min-w-0">
+                            <div class="font-bold text-lg text-gray-900">${product.name}</div>
+                            <div class="text-sm text-gray-600 truncate">${product.description}</div>
+                        </div>
+                        <div class="mt-2 md:mt-0 md:ml-4 flex items-center space-x-4">
+                            <span class="font-extrabold text-indigo-600 text-xl">R$ ${product.price.toFixed(2).replace('.', ',')}</span>
+                            <span class="px-3 py-1 text-xs font-semibold rounded-full ${stockColor}">
+                                Estoque: ${product.stock}
+                            </span>
+                        </div>
+                    </div>
+                `;
+                listElement.innerHTML += itemHtml;
+            });
+        }
+
+        /**
+         * Renderiza a lista de clientes e o histórico de vendas.
+         */
+        function renderCustomers() {
+            const customerListElement = document.getElementById('customer-list');
+            const salesHistoryElement = document.getElementById('sales-history');
+            const customerCountElement = document.getElementById('customer-count');
+            
+            customerCountElement.textContent = customers.length;
+            
+            // Renderiza Clientes
+            customerListElement.innerHTML = '';
+            if (customers.length === 0) {
+                customerListElement.innerHTML = '<p class="text-gray-500 text-center py-4">Nenhum cliente cadastrado ainda.</p>';
+            } else {
+                customers.forEach(customer => {
+                    customerListElement.innerHTML += `
+                        <div class="p-3 bg-gray-50 border rounded-lg flex justify-between items-center">
+                            <div>
+                                <div class="font-medium text-gray-900">${customer.name}</div>
+                                <div class="text-sm text-gray-500">${customer.email} (ID: ${customer.id})</div>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            // Renderiza Vendas (Histórico)
+            salesHistoryElement.innerHTML = '';
+            if (sales.length === 0) {
+                salesHistoryElement.innerHTML = '<p class="text-gray-500 text-center py-4">Nenhuma venda registrada ainda.</p>';
+            } else {
+                sales.slice().reverse().forEach(sale => { // Exibe os mais recentes primeiro
+                    const customer = customers.find(c => c.id === sale.customerId);
+                    salesHistoryElement.innerHTML += `
+                        <div class="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                            <div class="font-medium text-yellow-800">Venda #${sale.id}</div>
+                            <div class="text-sm text-gray-700">
+                                Cliente: <span class="font-semibold">${customer ? customer.name : 'ID Desconhecido'}</span><br>
+                                Produto: ${sale.productName} (R$ ${sale.price.toFixed(2).replace('.', ',')})<br>
+                                Data: ${sale.saleDate}
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+        }
+        
+        /**
+         * Preenche os campos SELECT do formulário de vendas.
+         */
+        function setupSalesForm() {
+            const customerSelect = document.getElementById('sale-customer');
+            const productSelect = document.getElementById('sale-product');
+            const messageDiv = document.getElementById('sale-form-message');
+
+            // Limpa as opções atuais
+            customerSelect.innerHTML = '<option value="">-- Selecione um Cliente --</option>';
+            productSelect.innerHTML = '<option value="">-- Selecione um Aparelho --</option>';
+            messageDiv.classList.add('hidden');
+            
+            // Preenche Clientes
+            customers.forEach(customer => {
+                customerSelect.innerHTML += `<option value="${customer.id}">${customer.name} (ID: ${customer.id})</option>`;
+            });
+
+            // Preenche Produtos em Estoque
+            let hasStock = false;
+            products.filter(p => p.stock > 0).forEach(product => {
+                productSelect.innerHTML += `<option value="${product.id}">[${product.stock} em Estoque] ${product.name} (R$ ${product.price.toFixed(2).replace('.', ',')})</option>`;
+                hasStock = true;
+            });
+            
+            if (customers.length === 0) {
+                 messageDiv.textContent = 'ERRO: Nenhum cliente cadastrado. Cadastre um cliente primeiro.';
+                 messageDiv.classList.remove('hidden');
+            } else if (!hasStock) {
+                messageDiv.textContent = 'ERRO: Nenhum produto em estoque para venda.';
+                messageDiv.classList.remove('hidden');
+            }
+        }
+
+        /**
+         * Adiciona um novo cliente.
+         */
+        document.getElementById('customer-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const name = document.getElementById('customer-name').value.trim();
+            const email = document.getElementById('customer-email').value.trim();
+
+            if (name && email) {
+                customers.push({
+                    id: nextCustomerId++,
+                    name: name,
+                    email: email
+                });
+                
+                // Limpa o formulário
+                document.getElementById('customer-form').reset();
+                
+                // Re-renderiza a lista de clientes e vendas
+                renderCustomers();
+                
+                // Mensagem de feedback temporária
+                const submitButton = this.querySelector('button[type="submit"]');
+                const originalText = submitButton.textContent;
+                submitButton.textContent = 'Cliente Cadastrado!';
+                submitButton.classList.remove('bg-green-600', 'hover:bg-green-700');
+                submitButton.classList.add('bg-blue-500');
+
+                setTimeout(() => {
+                    submitButton.textContent = originalText;
+                    submitButton.classList.remove('bg-blue-500');
+                    submitButton.classList.add('bg-green-600', 'hover:bg-green-700');
+                }, 1500);
+            }
+        });
+
+        /**
+         * Registra uma nova venda.
+         */
+        document.getElementById('sale-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const customerId = parseInt(document.getElementById('sale-customer').value);
+            const productId = parseInt(document.getElementById('sale-product').value);
+            const messageDiv = document.getElementById('sale-form-message');
+            messageDiv.classList.add('hidden');
+
+            const product = products.find(p => p.id === productId);
+            const customer = customers.find(c => c.id === customerId);
+
+            if (!customer || !product || product.stock <= 0) {
+                messageDiv.textContent = 'Erro na seleção do cliente ou produto sem estoque.';
+                messageDiv.classList.remove('hidden');
+                return;
+            }
+
+            // 1. Atualiza o Estoque
+            product.stock -= 1;
+
+            // 2. Registra a Venda
+            sales.push({
+                id: nextSaleId++,
+                customerId: customerId,
+                productId: productId,
+                productName: product.name,
+                price: product.price,
+                saleDate: new Date().toLocaleDateString('pt-BR')
+            });
+            
+            // 3. Feedback e Limpeza
+            document.getElementById('sale-form').reset();
+            const submitButton = this.querySelector('button[type="submit"]');
+            const originalText = submitButton.textContent;
+            submitButton.textContent = 'Venda Registrada com Sucesso!';
+            submitButton.classList.remove('bg-indigo-600', 'hover:bg-indigo-700');
+            submitButton.classList.add('bg-green-600');
+
+            setTimeout(() => {
+                submitButton.textContent = originalText;
+                submitButton.classList.remove('bg-green-600');
+                submitButton.classList.add('bg-indigo-600', 'hover:bg-indigo-700');
+                
+                // Re-renderiza todas as vistas após a venda
+                renderProducts();
+                renderCustomers();
+                setupSalesForm(); 
+            }, 1500);
+        });
+
+        /**
+         * Gerencia a troca de visualização (abas).
+         */
+        function switchView(viewId) {
+            const views = ['products', 'customers', 'sales'];
+            
+            views.forEach(id => {
+                const viewElement = document.getElementById(`view-${id}`);
+                const tabElement = document.getElementById(`tab-${id}`);
+                
+                if (id === viewId) {
+                    viewElement.classList.remove('hidden');
+                    tabElement.classList.add('tab-active');
+                    
+                    // Ações específicas ao trocar de aba
+                    if (id === 'sales') {
+                        setupSalesForm();
+                    } else if (id === 'customers') {
+                        renderCustomers();
+                    }
+                } else {
+                    viewElement.classList.add('hidden');
+                    tabElement.classList.remove('tab-active');
+                }
+            });
+        }
+        
+        // --- Inicialização da Aplicação ---
+        window.onload = function() {
+            // Inicializa a visualização do Catálogo
+            renderProducts();
+            switchView('products'); 
+        };
+
+    </script>
+</body>
+</html>
